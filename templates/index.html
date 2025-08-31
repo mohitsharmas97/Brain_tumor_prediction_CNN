@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brain Tumor Classifier</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for a clean look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .loader {
+            border-top-color: #3498db;
+            -webkit-animation: spin 1s linear infinite;
+            animation: spin 1s linear infinite;
+        }
+        @-webkit-keyframes spin {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 flex items-center justify-center min-h-screen">
+
+    <div class="container mx-auto p-6 max-w-2xl">
+        <div class="bg-white rounded-2xl shadow-lg p-8 md:p-12">
+            
+            <!-- Header Section -->
+            <div class="text-center mb-8">
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Brain Tumor MRI Classifier</h1>
+                <p class="text-gray-500 mt-2">Upload an MRI image to detect the type of brain tumor.</p>
+            </div>
+
+            <!-- Upload Form -->
+            <form id="upload-form" class="space-y-6">
+                <div>
+                    <label for="file-upload" class="block text-sm font-medium text-gray-700 mb-2">MRI Image:</label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                        <div class="space-y-1 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div class="flex text-sm text-gray-600">
+                                <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                                    <span>Upload a file</span>
+                                    <input id="file-upload" name="file" type="file" class="sr-only" accept="image/png, image/jpeg, image/jpg">
+                                </label>
+                                <p class="pl-1">or drag and drop</p>
+                            </div>
+                            <p class="text-xs text-gray-500" id="file-name">PNG, JPG, JPEG up to 10MB</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                        Classify Tumor
+                    </button>
+                </div>
+            </form>
+
+            <!-- Results Section -->
+            <div id="result-section" class="mt-10 text-center hidden">
+                <!-- Loader -->
+                <div id="loader" class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mx-auto mb-4 hidden"></div>
+                
+                <!-- Image Preview -->
+                <div id="image-preview-container" class="mb-4 hidden">
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Uploaded Image:</h3>
+                    <img id="image-preview" src="#" alt="Image preview" class="max-w-xs mx-auto rounded-lg shadow-md"/>
+                </div>
+                
+                <!-- Prediction Result -->
+                <div id="prediction-container" class="hidden">
+                    <h3 class="text-lg font-medium text-gray-900">Prediction:</h3>
+                    <p id="prediction-result" class="text-2xl font-bold text-indigo-600 mt-2"></p>
+                </div>
+
+                 <!-- Error Message -->
+                <div id="error-container" class="hidden mt-4">
+                    <p class="text-red-500 font-medium"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('upload-form');
+        const fileInput = document.getElementById('file-upload');
+        const fileNameDisplay = document.getElementById('file-name');
+        
+        const resultSection = document.getElementById('result-section');
+        const loader = document.getElementById('loader');
+        
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        
+        const predictionContainer = document.getElementById('prediction-container');
+        const predictionResult = document.getElementById('prediction-result');
+        
+        const errorContainer = document.getElementById('error-container');
+        const errorMessage = errorContainer.querySelector('p');
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                fileNameDisplay.textContent = fileInput.files[0].name;
+            } else {
+                fileNameDisplay.textContent = 'PNG, JPG, JPEG up to 10MB';
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const file = fileInput.files[0];
+            if (!file) {
+                showError('Please select an image file first.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Reset UI
+            hideError();
+            resultSection.classList.remove('hidden');
+            loader.classList.remove('hidden');
+            imagePreviewContainer.classList.add('hidden');
+            predictionContainer.classList.add('hidden');
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Server responded with status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayResults(file, data.prediction);
+
+            } catch (error) {
+                console.error('Prediction error:', error);
+                showError(error.message || 'An unexpected error occurred.');
+            } finally {
+                loader.classList.add('hidden');
+            }
+        });
+        
+        function displayResults(file, prediction) {
+            // Display image preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                imagePreviewContainer.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+
+            // Display prediction
+            predictionResult.textContent = prediction;
+            predictionContainer.classList.remove('hidden');
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorContainer.classList.remove('hidden');
+            resultSection.classList.remove('hidden');
+            predictionContainer.classList.add('hidden');
+            imagePreviewContainer.classList.add('hidden');
+        }
+
+        function hideError() {
+            errorContainer.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
