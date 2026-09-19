@@ -1,189 +1,1179 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brain Tumor Classifier</title>
-    <!-- Tailwind CSS for styling -->
+
+    <title>NeuroScan AI | Brain Tumor Classifier</title>
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts for a clean look -->
+
+    <!-- Google Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
+            background:
+                radial-gradient(circle at 10% 20%, rgba(59,130,246,0.15), transparent 30%),
+                radial-gradient(circle at 90% 80%, rgba(139,92,246,0.15), transparent 30%),
+                #f8fafc;
         }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .upload-area {
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.04);
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #4f46e5;
+            background: rgba(99, 102, 241, 0.08);
+            transform: scale(1.01);
+        }
+
+        .scan-animation {
+            animation: scan 2s infinite ease-in-out;
+        }
+
+        @keyframes scan {
+            0%, 100% {
+                opacity: 0.4;
+                transform: translateY(-8px);
+            }
+
+            50% {
+                opacity: 1;
+                transform: translateY(8px);
+            }
+        }
+
+        .pulse-ring {
+            animation: pulseRing 1.8s infinite;
+        }
+
+        @keyframes pulseRing {
+            0% {
+                transform: scale(0.9);
+                opacity: 0.7;
+            }
+
+            70% {
+                transform: scale(1.15);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .medical-grid {
+            background-image:
+                linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px);
+            background-size: 35px 35px;
+        }
+
         .loader {
-            border-top-color: #3498db;
-            -webkit-animation: spin 1s linear infinite;
-            animation: spin 1s linear infinite;
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #6366f1;
+            border-right: 4px solid #8b5cf6;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
         }
-        @-webkit-keyframes spin {
-            0% { -webkit-transform: rotate(0deg); }
-            100% { -webkit-transform: rotate(360deg); }
-        }
+
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .result-glow {
+            box-shadow:
+                0 20px 50px rgba(79, 70, 229, 0.12),
+                0 0 0 1px rgba(99, 102, 241, 0.08);
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 flex items-center justify-center min-h-screen">
 
-    <div class="container mx-auto p-6 max-w-2xl">
-        <div class="bg-white rounded-2xl shadow-lg p-8 md:p-12">
-            
-            <!-- Header Section -->
+<body class="min-h-screen text-gray-800">
+
+    <!-- Background -->
+    <div class="fixed inset-0 pointer-events-none medical-grid opacity-60"></div>
+
+    <main class="relative min-h-screen flex items-center justify-center px-4 py-10">
+
+        <div class="w-full max-w-5xl">
+
+            <!-- ================= HEADER ================= -->
             <div class="text-center mb-8">
-                <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Brain Tumor MRI Classifier</h1>
-                <p class="text-gray-500 mt-2">Upload an MRI image to detect the type of brain tumor.</p>
-            </div>
 
-            <!-- Upload Form -->
-            <form id="upload-form" class="space-y-6">
-                <div>
-                    <label for="file-upload" class="block text-sm font-medium text-gray-700 mb-2">MRI Image:</label>
-                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                        <div class="space-y-1 text-center">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <!-- Logo -->
+                <div class="inline-flex items-center justify-center mb-5">
+                    <div class="relative">
+
+                        <div class="absolute inset-0 rounded-2xl bg-indigo-500 blur-xl opacity-20"></div>
+
+                        <div class="relative w-16 h-16 rounded-2xl
+                                    bg-gradient-to-br from-indigo-600 to-purple-600
+                                    flex items-center justify-center shadow-xl">
+
+                            <!-- Brain Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="w-9 h-9 text-white"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor"
+                                 stroke-width="1.7">
+
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      d="M9.5 3.5a3 3 0 00-3 3v.5a3.5 3.5 0 00-2.5 6.7A3.5 3.5 0 007.5 20H9m0-16.5A3 3 0 0112 6a3 3 0 015.5 1.5v.5a3.5 3.5 0 012.5 6.7A3.5 3.5 0 0116.5 20H15m-5.5-4h5m-2.5-8v8"/>
                             </svg>
-                            <div class="flex text-sm text-gray-600">
-                                <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
-                                    <span>Upload a file</span>
-                                    <input id="file-upload" name="file" type="file" class="sr-only" accept="image/png, image/jpeg, image/jpg">
-                                </label>
-                                <p class="pl-1">or drag and drop</p>
-                            </div>
-                            <p class="text-xs text-gray-500" id="file-name">PNG, JPG, JPEG up to 10MB</p>
                         </div>
+
                     </div>
                 </div>
 
-                <div>
-                    <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
-                        Classify Tumor
-                    </button>
-                </div>
-            </form>
+                <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900">
+                    Neuro<span class="gradient-text">Scan AI</span>
+                </h1>
 
-            <!-- Results Section -->
-            <div id="result-section" class="mt-10 text-center hidden">
-                <!-- Loader -->
-                <div id="loader" class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mx-auto mb-4 hidden"></div>
-                
-                <!-- Image Preview -->
-                <div id="image-preview-container" class="mb-4 hidden">
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Uploaded Image:</h3>
-                    <img id="image-preview" src="#" alt="Image preview" class="max-w-xs mx-auto rounded-lg shadow-md"/>
-                </div>
-                
-                <!-- Prediction Result -->
-                <div id="prediction-container" class="hidden">
-                    <h3 class="text-lg font-medium text-gray-900">Prediction:</h3>
-                    <p id="prediction-result" class="text-2xl font-bold text-indigo-600 mt-2"></p>
-                </div>
+                <p class="mt-3 text-gray-500 text-base md:text-lg max-w-xl mx-auto">
+                    AI-powered brain MRI classification system for
+                    <span class="font-semibold text-gray-700">
+                        research and educational purposes
+                    </span>.
+                </p>
 
-                 <!-- Error Message -->
-                <div id="error-container" class="hidden mt-4">
-                    <p class="text-red-500 font-medium"></p>
+                <!-- Status -->
+                <div class="mt-4 inline-flex items-center gap-2 px-4 py-2
+                            bg-white/80 border border-gray-200 rounded-full shadow-sm">
+
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span class="pulse-ring absolute inline-flex h-full w-full rounded-full bg-green-400"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                    </span>
+
+                    <span class="text-xs font-semibold text-gray-600">
+                        AI MODEL READY
+                    </span>
                 </div>
             </div>
+
+
+            <!-- ================= MAIN CARD ================= -->
+
+            <div class="glass rounded-3xl border border-white shadow-2xl overflow-hidden">
+
+                <!-- Top gradient line -->
+                <div class="h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-blue-500"></div>
+
+                <div class="p-6 md:p-10">
+
+                    <!-- Information cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+
+                        <div class="bg-indigo-50 rounded-2xl p-4 border border-indigo-100">
+                            <div class="flex items-center gap-3">
+
+                                <div class="w-10 h-10 rounded-xl bg-indigo-100
+                                            flex items-center justify-center">
+
+                                    <svg class="w-5 h-5 text-indigo-600"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         viewBox="0 0 24 24">
+
+                                        <path stroke-linecap="round"
+                                              stroke-linejoin="round"
+                                              stroke-width="2"
+                                              d="M9 12l2 2 4-4m5.618-4.016A11.955
+                                                 11.955 0 0112 2.944a11.955
+                                                 11.955 0 01-8.618 3.04A12.02
+                                                 12.02 0 003 9c0 5.591
+                                                 3.824 10.29 9 11.622
+                                                 5.176-1.332 9-6.03
+                                                 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                    </svg>
+                                </div>
+
+                                <div>
+                                    <p class="text-xs text-gray-500">Analysis</p>
+                                    <p class="font-bold text-gray-800">AI Powered</p>
+                                </div>
+
+                            </div>
+                        </div>
+
+
+                        <div class="bg-purple-50 rounded-2xl p-4 border border-purple-100">
+                            <div class="flex items-center gap-3">
+
+                                <div class="w-10 h-10 rounded-xl bg-purple-100
+                                            flex items-center justify-center">
+
+                                    <svg class="w-5 h-5 text-purple-600"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         viewBox="0 0 24 24">
+
+                                        <path stroke-linecap="round"
+                                              stroke-linejoin="round"
+                                              stroke-width="2"
+                                              d="M4 5a1 1 0 011-1h14a1
+                                                 1 0 011 1v14a1 1 0
+                                                 01-1 1H5a1 1 0
+                                                 01-1-1V5z"/>
+                                    </svg>
+                                </div>
+
+                                <div>
+                                    <p class="text-xs text-gray-500">Input</p>
+                                    <p class="font-bold text-gray-800">MRI Image</p>
+                                </div>
+
+                            </div>
+                        </div>
+
+
+                        <div class="bg-blue-50 rounded-2xl p-4 border border-blue-100">
+                            <div class="flex items-center gap-3">
+
+                                <div class="w-10 h-10 rounded-xl bg-blue-100
+                                            flex items-center justify-center">
+
+                                    <svg class="w-5 h-5 text-blue-600"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         viewBox="0 0 24 24">
+
+                                        <path stroke-linecap="round"
+                                              stroke-linejoin="round"
+                                              stroke-width="2"
+                                              d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                    </svg>
+
+                                </div>
+
+                                <div>
+                                    <p class="text-xs text-gray-500">Processing</p>
+                                    <p class="font-bold text-gray-800">Fast Analysis</p>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                    <!-- ================= UPLOAD ================= -->
+
+                    <form id="upload-form">
+
+                        <div>
+
+                            <div class="flex items-center justify-between mb-3">
+
+                                <div>
+                                    <h2 class="text-lg font-bold text-gray-900">
+                                        Upload MRI Scan
+                                    </h2>
+
+                                    <p class="text-sm text-gray-500">
+                                        Select an MRI image for classification
+                                    </p>
+                                </div>
+
+                                <span class="hidden md:inline-flex px-3 py-1
+                                             bg-gray-100 rounded-full
+                                             text-xs font-medium text-gray-500">
+                                    JPG / PNG
+                                </span>
+
+                            </div>
+
+
+                            <!-- Upload area -->
+                            <div id="drop-zone"
+                                 class="upload-area relative border-2 border-dashed
+                                        border-gray-300 rounded-2xl p-8 md:p-12
+                                        text-center cursor-pointer bg-gray-50/70">
+
+                                <input
+                                    id="file-upload"
+                                    name="file"
+                                    type="file"
+                                    class="hidden"
+                                    accept="image/png,image/jpeg,image/jpg"
+                                >
+
+
+                                <div id="upload-content">
+
+                                    <!-- Upload Icon -->
+                                    <div class="mx-auto w-16 h-16 rounded-2xl
+                                                bg-gradient-to-br from-indigo-100
+                                                to-purple-100
+                                                flex items-center justify-center mb-5">
+
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                             class="w-8 h-8 text-indigo-600"
+                                             fill="none"
+                                             viewBox="0 0 24 24"
+                                             stroke="currentColor"
+                                             stroke-width="1.7">
+
+                                            <path stroke-linecap="round"
+                                                  stroke-linejoin="round"
+                                                  d="M4 16l4-4 4 4m0 0l4-4
+                                                     4 4M12 12V3m0 0L9 6m3-3
+                                                     l3 3M5 21h14a2 2 0 002-2
+                                                     V7a2 2 0 00-2-2h-3.5
+                                                     L14 3H10L8.5 5H5a2 2 0
+                                                     00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+
+                                    </div>
+
+
+                                    <h3 class="text-lg font-semibold text-gray-800">
+                                        Drop your MRI image here
+                                    </h3>
+
+                                    <p class="text-sm text-gray-500 mt-2">
+                                        or
+                                        <span class="text-indigo-600 font-semibold">
+                                            browse from your computer
+                                        </span>
+                                    </p>
+
+                                    <p id="file-name"
+                                       class="text-xs text-gray-400 mt-4">
+                                        PNG, JPG or JPEG • Maximum 10MB
+                                    </p>
+
+                                </div>
+
+
+                                <!-- Selected image preview -->
+                                <div id="selected-preview"
+                                     class="hidden">
+
+                                    <div class="relative inline-block">
+
+                                        <img id="preview-image"
+                                             class="max-h-64 max-w-full rounded-xl
+                                                    shadow-lg object-contain"
+                                             alt="MRI Preview">
+
+                                        <button type="button"
+                                                id="remove-image"
+                                                class="absolute -top-3 -right-3
+                                                       w-8 h-8 rounded-full
+                                                       bg-red-500 text-white
+                                                       flex items-center justify-center
+                                                       shadow-lg hover:bg-red-600
+                                                       transition">
+
+                                            ×
+
+                                        </button>
+
+                                    </div>
+
+                                    <p id="selected-file-name"
+                                       class="mt-3 text-sm font-medium text-gray-700">
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Button -->
+                        <button
+                            id="submit-button"
+                            type="submit"
+                            class="mt-6 w-full py-4 px-6 rounded-2xl
+                                   bg-gradient-to-r from-indigo-600 to-purple-600
+                                   hover:from-indigo-700 hover:to-purple-700
+                                   text-white font-bold
+                                   shadow-lg shadow-indigo-200
+                                   hover:shadow-xl
+                                   transition-all duration-300
+                                   flex items-center justify-center gap-3
+                                   disabled:opacity-50 disabled:cursor-not-allowed">
+
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="w-5 h-5"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="2"
+                                      d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+
+                            Analyze MRI Scan
+
+                        </button>
+
+                    </form>
+
+
+                    <!-- ================= RESULT ================= -->
+
+                    <div id="result-section" class="hidden mt-8">
+
+                        <!-- Divider -->
+                        <div class="flex items-center gap-4 mb-6">
+                            <div class="h-px bg-gray-200 flex-1"></div>
+
+                            <span class="text-xs font-semibold text-gray-400 uppercase">
+                                Analysis Result
+                            </span>
+
+                            <div class="h-px bg-gray-200 flex-1"></div>
+                        </div>
+
+
+                        <!-- Loading -->
+                        <div id="loading-container"
+                             class="hidden text-center py-8">
+
+                            <div class="relative inline-flex">
+
+                                <div class="loader"></div>
+
+                            </div>
+
+                            <h3 class="mt-5 font-bold text-gray-800">
+                                Analyzing MRI...
+                            </h3>
+
+                            <p class="text-sm text-gray-500 mt-2">
+                                Our AI model is processing the image
+                            </p>
+
+                            <div class="mt-5 max-w-xs mx-auto">
+                                <div class="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r
+                                                from-indigo-500 to-purple-500
+                                                rounded-full scan-animation"
+                                         style="width:70%">
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+
+                        <!-- Result -->
+                        <div id="prediction-container"
+                             class="hidden">
+
+                            <div class="result-glow bg-white rounded-3xl
+                                        border border-gray-100 p-6 md:p-8">
+
+                                <div class="grid md:grid-cols-2 gap-8 items-center">
+
+                                    <!-- Image -->
+                                    <div>
+
+                                        <p class="text-sm font-semibold
+                                                  text-gray-500 mb-3">
+                                            ANALYZED MRI
+                                        </p>
+
+                                        <div class="bg-gray-950 rounded-2xl p-3">
+                                            <img id="image-preview"
+                                                 src="#"
+                                                 alt="Analyzed MRI"
+                                                 class="w-full max-h-72
+                                                        object-contain rounded-xl">
+                                        </div>
+
+                                    </div>
+
+
+                                    <!-- Prediction -->
+                                    <div class="text-center md:text-left">
+
+                                        <div class="inline-flex items-center
+                                                    gap-2 px-3 py-1.5
+                                                    rounded-full bg-green-50
+                                                    text-green-700 text-xs
+                                                    font-bold mb-4">
+
+                                            <span class="w-2 h-2 bg-green-500
+                                                         rounded-full"></span>
+
+                                            ANALYSIS COMPLETE
+
+                                        </div>
+
+
+                                        <p class="text-sm font-semibold
+                                                  text-gray-500">
+                                            PREDICTED CLASS
+                                        </p>
+
+                                        <h2 id="prediction-result"
+                                            class="text-3xl md:text-4xl
+                                                   font-extrabold
+                                                   gradient-text mt-2">
+                                        </h2>
+
+
+                                        <!-- Result indicator -->
+                                        <div class="mt-6">
+
+                                            <div class="flex justify-between
+                                                        text-xs font-semibold
+                                                        text-gray-500 mb-2">
+
+                                                <span>Model Prediction</span>
+                                                <span>Detected</span>
+
+                                            </div>
+
+                                            <div class="h-3 bg-gray-100
+                                                        rounded-full overflow-hidden">
+
+                                                <div class="h-full w-full
+                                                            rounded-full
+                                                            bg-gradient-to-r
+                                                            from-indigo-500
+                                                            to-purple-500">
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- Disclaimer -->
+                                <div class="mt-6 p-4 rounded-xl bg-amber-50
+                                            border border-amber-100">
+
+                                    <div class="flex gap-3">
+
+                                        <svg class="w-5 h-5 text-amber-600
+                                                    flex-shrink-0"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             viewBox="0 0 24 24">
+
+                                            <path stroke-linecap="round"
+                                                  stroke-linejoin="round"
+                                                  stroke-width="2"
+                                                  d="M12 9v2m0 4h.01M12 3a9
+                                                     9 0 100 18 9 9 0 000-18z"/>
+                                        </svg>
+
+                                        <p class="text-xs leading-relaxed
+                                                  text-amber-800">
+
+                                            <strong>Important:</strong>
+                                            This AI classifier is intended for
+                                            research and educational purposes.
+                                            It should not be used as a substitute
+                                            for professional medical diagnosis.
+
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- Analyze another -->
+                                <button id="reset-button"
+                                        type="button"
+                                        class="mt-6 w-full py-3 rounded-xl
+                                               border border-gray-200
+                                               text-gray-700 font-semibold
+                                               hover:bg-gray-50 transition">
+
+                                    Analyze Another MRI
+
+                                </button>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Error -->
+                        <div id="error-container"
+                             class="hidden">
+
+                            <div class="p-5 rounded-2xl bg-red-50
+                                        border border-red-100">
+
+                                <div class="flex items-start gap-3">
+
+                                    <div class="w-10 h-10 rounded-xl
+                                                bg-red-100 flex items-center
+                                                justify-center flex-shrink-0">
+
+                                        <svg class="w-5 h-5 text-red-600"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             viewBox="0 0 24 24">
+
+                                            <path stroke-linecap="round"
+                                                  stroke-linejoin="round"
+                                                  stroke-width="2"
+                                                  d="M6 18L18 6M6 6l12 12"/>
+
+                                        </svg>
+
+                                    </div>
+
+                                    <div>
+                                        <h3 class="font-bold text-red-800">
+                                            Analysis Failed
+                                        </h3>
+
+                                        <p id="error-message"
+                                           class="text-sm text-red-600 mt-1">
+                                        </p>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+
+            <!-- ================= FOOTER ================= -->
+
+            <div class="text-center mt-6">
+
+                <p class="text-xs text-gray-400">
+                    NeuroScan AI • Brain MRI Classification System
+                </p>
+
+                <p class="text-xs text-gray-400 mt-1">
+                    For research and educational use only
+                </p>
+
+            </div>
+
         </div>
-    </div>
+
+    </main>
+
+
+    <!-- ================= JAVASCRIPT ================= -->
 
     <script>
-        const form = document.getElementById('upload-form');
-        const fileInput = document.getElementById('file-upload');
-        const fileNameDisplay = document.getElementById('file-name');
-        
-        const resultSection = document.getElementById('result-section');
-        const loader = document.getElementById('loader');
-        
-        const imagePreviewContainer = document.getElementById('image-preview-container');
-        const imagePreview = document.getElementById('image-preview');
-        
-        const predictionContainer = document.getElementById('prediction-container');
-        const predictionResult = document.getElementById('prediction-result');
-        
-        const errorContainer = document.getElementById('error-container');
-        const errorMessage = errorContainer.querySelector('p');
 
-        fileInput.addEventListener('change', () => {
+        const form = document.getElementById("upload-form");
+
+        const fileInput = document.getElementById("file-upload");
+
+        const dropZone = document.getElementById("drop-zone");
+
+        const uploadContent = document.getElementById("upload-content");
+
+        const selectedPreview = document.getElementById("selected-preview");
+
+        const previewImage = document.getElementById("preview-image");
+
+        const fileName = document.getElementById("file-name");
+
+        const selectedFileName =
+            document.getElementById("selected-file-name");
+
+        const removeImage =
+            document.getElementById("remove-image");
+
+        const resultSection =
+            document.getElementById("result-section");
+
+        const loadingContainer =
+            document.getElementById("loading-container");
+
+        const predictionContainer =
+            document.getElementById("prediction-container");
+
+        const imagePreview =
+            document.getElementById("image-preview");
+
+        const predictionResult =
+            document.getElementById("prediction-result");
+
+        const errorContainer =
+            document.getElementById("error-container");
+
+        const errorMessage =
+            document.getElementById("error-message");
+
+        const submitButton =
+            document.getElementById("submit-button");
+
+        const resetButton =
+            document.getElementById("reset-button");
+
+
+        /* ===============================
+           OPEN FILE SELECTOR
+        =============================== */
+
+        dropZone.addEventListener("click", (e) => {
+
+            if (e.target !== removeImage) {
+                fileInput.click();
+            }
+
+        });
+
+
+        /* ===============================
+           FILE SELECTED
+        =============================== */
+
+        fileInput.addEventListener("change", () => {
+
             if (fileInput.files.length > 0) {
-                fileNameDisplay.textContent = fileInput.files[0].name;
-            } else {
-                fileNameDisplay.textContent = 'PNG, JPG, JPEG up to 10MB';
+
+                handleFile(fileInput.files[0]);
+
             }
+
         });
 
-        form.addEventListener('submit', async (e) => {
+
+        /* ===============================
+           DRAG & DROP
+        =============================== */
+
+        dropZone.addEventListener("dragover", (e) => {
+
             e.preventDefault();
-            
-            const file = fileInput.files[0];
-            if (!file) {
-                showError('Please select an image file first.');
-                return;
-            }
 
-            const formData = new FormData();
-            formData.append('file', file);
+            dropZone.classList.add("dragover");
 
-            // Reset UI
-            hideError();
-            resultSection.classList.remove('hidden');
-            loader.classList.remove('hidden');
-            imagePreviewContainer.classList.add('hidden');
-            predictionContainer.classList.add('hidden');
-
-            try {
-                const response = await fetch('/predict', {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `Server responded with status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                displayResults(file, data.prediction);
-
-            } catch (error) {
-                console.error('Prediction error:', error);
-                showError(error.message || 'An unexpected error occurred.');
-            } finally {
-                loader.classList.add('hidden');
-            }
         });
-        
-        function displayResults(file, prediction) {
-            // Display image preview
+
+
+        dropZone.addEventListener("dragleave", () => {
+
+            dropZone.classList.remove("dragover");
+
+        });
+
+
+        dropZone.addEventListener("drop", (e) => {
+
+            e.preventDefault();
+
+            dropZone.classList.remove("dragover");
+
+            const file = e.dataTransfer.files[0];
+
+            if (file) {
+
+                fileInput.files = e.dataTransfer.files;
+
+                handleFile(file);
+
+            }
+
+        });
+
+
+        /* ===============================
+           HANDLE FILE
+        =============================== */
+
+        function handleFile(file) {
+
+            const allowedTypes = [
+                "image/jpeg",
+                "image/jpg",
+                "image/png"
+            ];
+
+            if (!allowedTypes.includes(file.type)) {
+
+                showError(
+                    "Please upload a JPG, JPEG or PNG image."
+                );
+
+                return;
+
+            }
+
+
+            if (file.size > 10 * 1024 * 1024) {
+
+                showError(
+                    "File size must be less than 10MB."
+                );
+
+                return;
+
+            }
+
+
+            hideError();
+
+            fileName.textContent = file.name;
+
+            selectedFileName.textContent = file.name;
+
+
             const reader = new FileReader();
+
             reader.onload = (e) => {
-                imagePreview.src = e.target.result;
-                imagePreviewContainer.classList.remove('hidden');
+
+                previewImage.src = e.target.result;
+
+                uploadContent.classList.add("hidden");
+
+                selectedPreview.classList.remove("hidden");
+
             };
+
             reader.readAsDataURL(file);
 
-            // Display prediction
-            predictionResult.textContent = prediction;
-            predictionContainer.classList.remove('hidden');
         }
+
+
+        /* ===============================
+           REMOVE IMAGE
+        =============================== */
+
+        removeImage.addEventListener("click", (e) => {
+
+            e.stopPropagation();
+
+            resetUploader();
+
+        });
+
+
+        function resetUploader() {
+
+            fileInput.value = "";
+
+            uploadContent.classList.remove("hidden");
+
+            selectedPreview.classList.add("hidden");
+
+            previewImage.src = "";
+
+            fileName.textContent =
+                "PNG, JPG or JPEG • Maximum 10MB";
+
+        }
+
+
+        /* ===============================
+           FORM SUBMIT
+        =============================== */
+
+        form.addEventListener("submit", async (e) => {
+
+            e.preventDefault();
+
+
+            const file = fileInput.files[0];
+
+
+            if (!file) {
+
+                showError(
+                    "Please select an MRI image first."
+                );
+
+                return;
+
+            }
+
+
+            const formData = new FormData();
+
+            formData.append("file", file);
+
+
+            /* Reset results */
+
+            hideError();
+
+            resultSection.classList.remove("hidden");
+
+            loadingContainer.classList.remove("hidden");
+
+            predictionContainer.classList.add("hidden");
+
+
+            submitButton.disabled = true;
+
+            submitButton.innerHTML = `
+                <div class="loader"
+                     style="width:22px;height:22px;
+                            border-width:3px;
+                            border-top-color:white;
+                            border-right-color:white;">
+                </div>
+                Analyzing MRI...
+            `;
+
+
+            try {
+
+                const response = await fetch("/predict", {
+
+                    method: "POST",
+
+                    body: formData
+
+                });
+
+
+                if (!response.ok) {
+
+                    let errorData = {};
+
+                    try {
+
+                        errorData = await response.json();
+
+                    } catch (e) {
+
+                        errorData = {};
+
+                    }
+
+
+                    throw new Error(
+                        errorData.error ||
+                        `Server responded with status: ${response.status}`
+                    );
+
+                }
+
+
+                const data = await response.json();
+
+
+                displayResults(
+                    file,
+                    data.prediction
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "Prediction error:",
+                    error
+                );
+
+                showError(
+                    error.message ||
+                    "An unexpected error occurred."
+                );
+
+            } finally {
+
+                loadingContainer.classList.add("hidden");
+
+                submitButton.disabled = false;
+
+                submitButton.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="w-5 h-5"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M13 10V3L4 14h7v7l9-11h-7z"/>
+
+                    </svg>
+
+                    Analyze MRI Scan
+                `;
+
+            }
+
+        });
+
+
+        /* ===============================
+           DISPLAY RESULT
+        =============================== */
+
+        function displayResults(file, prediction) {
+
+            const reader = new FileReader();
+
+
+            reader.onload = (e) => {
+
+                imagePreview.src = e.target.result;
+
+            };
+
+
+            reader.readAsDataURL(file);
+
+
+            predictionResult.textContent = prediction;
+
+
+            predictionContainer.classList.remove(
+                "hidden"
+            );
+
+            predictionContainer.classList.add(
+                "fade-in"
+            );
+
+
+            resultSection.scrollIntoView({
+
+                behavior: "smooth",
+
+                block: "center"
+
+            });
+
+        }
+
+
+        /* ===============================
+           ERROR
+        =============================== */
 
         function showError(message) {
+
             errorMessage.textContent = message;
-            errorContainer.classList.remove('hidden');
-            resultSection.classList.remove('hidden');
-            predictionContainer.classList.add('hidden');
-            imagePreviewContainer.classList.add('hidden');
+
+            errorContainer.classList.remove(
+                "hidden"
+            );
+
+            resultSection.classList.remove(
+                "hidden"
+            );
+
+            loadingContainer.classList.add(
+                "hidden"
+            );
+
+            predictionContainer.classList.add(
+                "hidden"
+            );
+
         }
 
+
         function hideError() {
-            errorContainer.classList.add('hidden');
+
+            errorContainer.classList.add(
+                "hidden"
+            );
+
         }
+
+
+        /* ===============================
+           RESET
+        =============================== */
+
+        resetButton.addEventListener("click", () => {
+
+            resetUploader();
+
+            resultSection.classList.add(
+                "hidden"
+            );
+
+            predictionContainer.classList.add(
+                "hidden"
+            );
+
+            hideError();
+
+            window.scrollTo({
+
+                top: 0,
+
+                behavior: "smooth"
+
+            });
+
+        });
+
     </script>
+
 </body>
 </html>
+```
